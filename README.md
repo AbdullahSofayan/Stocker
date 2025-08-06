@@ -1,4 +1,4 @@
-# UNIT-3-PROJECT
+# Stocker
 
 ## Using Django create a website for managing corporate inventory !
 The project name is `Iventory Plus` . A comprehensive system to manage inventory and stock of a corporate.
