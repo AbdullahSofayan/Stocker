@@ -1,0 +1,94 @@
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: rgb(228, 228, 228) !important;
+}
+
+.sidebar {
+  width: 250px;
+  min-height: 100vh;
+}
+
+/* Override Bootstrap link color */
+.nav-link {
+  color: #6c7a89 !important; /* force light gray-blue */
+  font-weight: 500;
+  padding: 10px 15px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  text-decoration: none !important; /* remove underline */
+}
+
+/* Icon style */
+.nav-link i {
+  font-size: 18px;
+  color: #6c7a89 !important; /* force icon color */
+}
+
+/* Hover effect */
+.nav-link:hover {
+  background-color: #f5f6fa; 
+  color: #4a5c68 !important;
+}
+
+.nav-link:hover i {
+  color: #4a5c68 !important;
+}
+
+/* Active link */
+.nav-link.active {
+  background-color: transparent; 
+  color: #4a5c68 !important;
+  font-weight: 600;
+  background-color: #c6c6c6; 
+
+}
+
+.nav-link.active i {
+  color: #4a5c68 !important;
+}
+
+
+.topbar {
+  height: 70px;
+}
+
+.search-box {
+  background-color: #f8f9fa; /* light gray background */
+  border-radius: 8px;
+  padding: 6px 12px;
+  width: 350px; /* search box width */
+}
+
+.search-box input {
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+}
+
+.search-box i {
+  color: #6c7a89;
+}
+
+.search-box input:focus {
+  box-shadow: none;
+}
+
+
+.topbar img {
+  width: 32px;       
+  object-fit: cover;  
+}
+
+.card {
+  border-radius: 10px;
+}
+
+h6 {
+  font-weight: 600;
+}
+
+.table-sm td, .table-sm th {
+  padding: 0.5rem;
+}
