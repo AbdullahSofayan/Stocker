@@ -137,6 +137,10 @@ As an Inventory Manager, I want to export inventory data to CSV files so that I 
 - UML link here.
 - wireframe link here.
 
+## Note:
+- use best practices.
+- take good care of user experience (feedback, pagination, etc.)
+
       
 ## Resources:
 
