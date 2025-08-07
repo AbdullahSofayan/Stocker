@@ -1,0 +1,50 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}Inventory{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="m-0">Inventory</h2>
+    <a href="{% url 'product:add_product_view' %}" class="btn btn-sm btn-primary d-flex align-items-center" style="height: 38px;">
+        <i class="bi bi-plus-lg me-1"></i>Add
+    </a>
+</div>
+    
+    
+    <div class="row g-4">
+        {% for product in products %}
+        <div class="col-md-4 col-lg-3">
+            <div class="card shadow-sm h-100 border-0">
+                {% if product.image %}
+                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: contain;">
+                {% else %}
+                <img src="{% static 'products/default.jpeg' %}" class="card-img-top" alt="No image" style="height: 200px; object-fit: cover;">
+                {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title mb-1">{{ product.name }}</h5>
+                    <p class="text-muted mb-1"><small>Category: {{ product.category.name }}</small></p>
+                    <p class="mb-1">Quantity: <strong>{{ product.quantity }}</strong></p>
+                    <p class="mb-1">Reorder Level: {{ product.reorder_level }}</p>
+                    <span class="badge {% if product.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ product.get_status_display }}
+                    </span>
+                </div>
+
+                <div class="card-footer bg-white border-0 text-end">
+                    <a href="#" class="btn btn-sm btn-primary">Edit</a>
+                    <a href="#" class="btn btn-sm btn-outline-danger">Delete</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-muted">No products found.</p>
+        {% endfor %}
+        
+        
+    </div>
+    
+</div>
+{% endblock %}

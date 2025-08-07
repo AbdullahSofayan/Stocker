@@ -3,7 +3,11 @@ from django.http import HttpRequest
 
 # Create your views here.
 
-def Home_view(request: HttpRequest):
+def dashboard_view(request: HttpRequest):
 
     return render(request, "main/dashboard.html")
+
+
+
+
 
