@@ -6,13 +6,13 @@
 {% block main %}
 <div class="container py-4">
     {% if messages %}
-  {% for message in messages %}
-    <div class="alert {{message.tags}} alert-dismissible fade show" role="alert">
-        {{message}}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-  {% endfor %}
-{% endif %}
+        {% for message in messages %}
+            <div class="alert {{message.tags}} alert-dismissible fade show" role="alert">
+                {{message}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
     <div class="card shadow-sm border-0">
         <div class="card-body">
             <h3 class="mb-4">Add New Product</h3>
@@ -84,9 +84,11 @@
                 
                 <div class="col-md-6">
                     <label for="status" class="form-label">Status</label>
-                    <select name="status" id="status" class="form-select">
-                        <option value="active">Active</option>
-                        <option value="discontinued">Discontinued</option>
+                    <select name="stock_status" id="stock_status" class="form-select">
+                        <option value="in_stock" {% if product.stock_status == 'in_stock' %}selected{% endif %}>In Stock</option>
+                        <option value="almost_done" {% if product.stock_status == 'almost_done' %}selected{% endif %}>Almost Done</option>
+                        <option value="out_of_stock" {% if product.stock_status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+                        <option value="discontinued" {% if product.stock_status == 'discontinued' %}selected{% endif %}>Discontinued</option>
                     </select>
                 </div>
 

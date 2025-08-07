@@ -92,3 +92,28 @@ h6 {
 .table-sm td, .table-sm th {
   padding: 0.5rem;
 }
+
+
+.search-box {
+  background-color: white;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  min-width: 350px;
+  transition: box-shadow 0.3s ease;
+  margin-top: 0.3rem;
+}
+
+.search-box:focus-within {
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); 
+}
+
+.search-box i {
+    font-size: 1.2rem;
+    color: #6c757d;
+}
+
+.search-box input {
+    background: transparent;
+    font-size: 16px;
+}

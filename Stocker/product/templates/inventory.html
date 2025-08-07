@@ -2,45 +2,193 @@
 {% load static %}
 
 {% block title %}Inventory{% endblock %}
+{% block search %}
+<!-- Search -->
+<div class="flex-grow-1 d-flex justify-content-center">
+    <div class="search-box d-flex align-items-center">
+        <i class="bi bi-search me-2"></i>
+        <input type="search" class="form-control border-0 shadow-none" placeholder="Search product">
+    </div>
+</div>
+
+{% endblock %}
 
 {% block main %}
 <div class="container py-4">
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="m-0">Inventory</h2>
-    <a href="{% url 'product:add_product_view' %}" class="btn btn-sm btn-primary d-flex align-items-center" style="height: 38px;">
-        <i class="bi bi-plus-lg me-1"></i>Add
-    </a>
-</div>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {{message.tags}} alert-dismissible fade show" role="alert">
+                {{message}}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="m-0">Inventory</h2>
+        <a href="{% url 'product:add_product_view' %}" class="btn btn-sm btn-primary d-flex align-items-center" style="height: 38px;">
+            <i class="bi bi-plus-lg me-1"></i>Add
+        </a>
+    </div>
     
     
     <div class="row g-4">
         {% for product in products %}
+        
         <div class="col-md-4 col-lg-3">
-            <div class="card shadow-sm h-100 border-0">
-                {% if product.image %}
-                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: contain;">
-                {% else %}
-                <img src="{% static 'products/default.jpeg' %}" class="card-img-top" alt="No image" style="height: 200px; object-fit: cover;">
-                {% endif %}
-                
-                <div class="card-body">
-                    <h5 class="card-title mb-1">{{ product.name }}</h5>
-                    <p class="text-muted mb-1"><small>Category: {{ product.category.name }}</small></p>
-                    <p class="mb-1">Quantity: <strong>{{ product.quantity }}</strong></p>
-                    <p class="mb-1">Reorder Level: {{ product.reorder_level }}</p>
-                    <span class="badge {% if product.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
-                        {{ product.get_status_display }}
-                    </span>
+            <a href="{% url 'product:details_product_view' product.id %}" style="text-decoration: none; color: black;">
+                <div class="card shadow-sm h-100 border-0">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: contain;">
+                    {% else %}
+                    <img src="{% static 'products/default.jpeg' %}" class="card-img-top" alt="No image" style="height: 200px; object-fit: cover;">
+                    {% endif %}
+                    
+                    <div class="card-body">
+                        <h5 class="card-title mb-1">{{ product.name }}</h5>
+                        <p class="text-muted mb-1"><small>Category: {{ product.category.name }}</small></p>
+                        <p class="mb-1">Quantity: <strong>{{ product.quantity }}</strong></p>
+                        <p class="mb-1">Reorder Level: {{ product.reorder_level }}</p>
+                        <span class="badge 
+                            {% if product.stock_status == 'in_stock' %}bg-success
+                            {% elif product.stock_status == 'almost_done' %}bg-warning text-dark
+                            {% elif product.stock_status == 'out_of_stock' %}bg-danger
+                            {% else %}bg-secondary
+                            {% endif %}">
+                            {{ product.get_stock_status_display }}
+                        </span>
+
+                    </div>
+            </a>
+
+                    <div class="card-footer bg-white border-0 text-end">
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ product.id }}">Edit</button>
+                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ product.id }}">Delete</button>
+                    </div>
+                </div>
+            
+        </div>
+        <!-- Edit Modal -->
+        <div class="modal fade" id="editModal{{ product.id }}" tabindex="-1" aria-labelledby="editModalLabel{{ product.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+            <form method="post" action="{% url 'product:edit_product_view' product.id %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                <h5 class="modal-title" id="editModalLabel{{ product.id }}">Edit {{ product.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                <!-- Fields for editing (adjust names as needed) -->
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">SKU</label>
+                    <input type="text" name="sku" value="{{ product.sku }}" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="category" class="form-label">Category</label>
+                    <select name="category" id="category" class="form-select" value="{{product.category}}" required>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}" {% if product.category.id == category.id %}selected{% endif %}>
+                                {{ category.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Suppliers</label>
+                    <div class="form-check" style="max-height: 100px; overflow-y: auto;">
+                        {% for supplier in suppliers %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="supplier" id="supplier_{{ supplier.id }}" value="{{ supplier.id }}"
+                            {% if supplier in product.supplier.all %}checked{% endif %}>
+                            <label class="form-check-label" for="supplier_{{ supplier.id }}">{{ supplier.name }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Cost Price</label>
+                    <input type="number" name="cost_price" value="{{ product.cost_price }}" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" name="quantity" value="{{ product.quantity }}" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Reorder Level</label>
+                    <input type="number" name="reorder_level" value="{{ product.reorder_level }}" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="expiry_date" class="form-label">Expiry Date</label>
+                    <input type="date" name="expiry_date" id="expiry_date" class="form-control" min="{{ today_date }}" value="{{ product.expiry_date|date:'Y-m-d' }}">
                 </div>
 
-                <div class="card-footer bg-white border-0 text-end">
-                    <a href="#" class="btn btn-sm btn-primary">Edit</a>
-                    <a href="#" class="btn btn-sm btn-outline-danger">Delete</a>
+                <div class="col-md-6">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="stock_status" id="stock_status" class="form-select">
+                        <option value="in_stock" {% if product.stock_status == 'in_stock' %}selected{% endif %}>In Stock</option>
+                        <option value="almost_done" {% if product.stock_status == 'almost_done' %}selected{% endif %}>Almost Done</option>
+                        <option value="out_of_stock" {% if product.stock_status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+                        <option value="discontinued" {% if product.stock_status == 'discontinued' %}selected{% endif %}>Discontinued</option>
+                    </select>
                 </div>
+
+                
+                <div class="col-12">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea name="description" id="description" class="form-control" rows="3">{{product.description}}</textarea>
+                </div>
+
+                
+                <div class="col-12">
+                    <label for="image" class="form-label">Product Image</label>
+                    
+                    {% if product.image %}
+                        <div class="mb-2">
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" style="max-height: 150px;">
+                        </div>
+                    {% endif %}
+                    
+                    <input type="file" name="image" id="image" class="form-control">
+                </div>
+                </div>
+                <div class="modal-footer">
+                <button type="submit" class="btn btn-success">Save Changes</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
             </div>
         </div>
+        </div>
+        <!-- Delete Modal -->
+        <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ product.id }}" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+            <form method="post" action="{% url 'product:delete_product_view' product.id %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel{{ product.id }}">Delete {{ product.name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                Are you sure you want to delete <strong>{{ product.name }}</strong>?
+                </div>
+                <div class="modal-footer">
+                <button type="submit" class="btn btn-danger">Yes, Delete</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </form>
+            </div>
+        </div>
+        </div>
+
         {% empty %}
         <p class="text-muted">No products found.</p>
+
+
         {% endfor %}
         
         

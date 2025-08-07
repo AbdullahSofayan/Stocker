@@ -1,5 +1,4 @@
 from django.contrib import admin
-<<<<<<< HEAD
 from .models import Category, Supplier, Product
 
 
@@ -22,9 +21,9 @@ class SupplierAdmin(admin.ModelAdmin):
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
         'name', 'sku', 'category', 'quantity',
-        'reorder_level', 'cost_price', 'status', 'expiry_date', 'created_at'
+        'reorder_level', 'cost_price', 'stock_status', 'expiry_date', 'created_at'
     )
-    list_filter = ('category', 'status', 'supplier', 'expiry_date')
+    list_filter = ('category', 'stock_status', 'supplier', 'expiry_date')
     search_fields = ('name', 'sku', 'description')
     ordering = ('name',)
     filter_horizontal = ('supplier',)  # For ManyToMany supplier selection
@@ -35,7 +34,7 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('name', 'sku', 'category', 'description', 'image')
         }),
         ('Inventory Details', {
-            'fields': ('quantity', 'reorder_level', 'cost_price', 'status')
+            'fields': ('quantity', 'reorder_level', 'cost_price', 'stock_status')
         }),
         ('Suppliers', {
             'fields': ('supplier',)
@@ -47,7 +46,4 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('created_at', 'updated_at')
         }),
     )
-=======
 
-# Register your models here.
->>>>>>> 93c65be4906da29330fd850b320161ef5417f727

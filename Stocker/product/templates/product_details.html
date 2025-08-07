@@ -1,0 +1,82 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} Details{% endblock %}
+
+
+
+
+{% block main %}
+<div class="container py-5">
+
+  <div class="row mb-4">
+    <div class="col-md-5 text-center">
+      {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" class="img-fluid rounded shadow" style="max-height: 400px; object-fit: contain;">
+      {% else %}
+        <img src="{% static 'products/default.jpeg' %}" alt="No Image" class="img-fluid rounded shadow" style="max-height: 400px; object-fit: cover;">
+      {% endif %}
+    </div>
+
+    <div class="col-md-7">
+      <h2 class="mb-3">{{ product.name }}</h2>
+      <p class="text-muted"><strong>SKU:</strong> {{ product.sku }}</p>
+      <p><strong>Description:</strong></p>
+      <p class="border p-3 rounded bg-light">{{ product.description|default:"No description provided." }}</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <div class="row g-3">
+    <div class="col-md-4">
+      <p><strong>Category:</strong> {{ product.category.name }}</p>
+    </div>
+    <div class="col-md-4">
+      <p><strong>Quantity:</strong> {{ product.quantity }}</p>
+    </div>
+    <div class="col-md-4">
+      <p><strong>Reorder Level:</strong> {{ product.reorder_level }}</p>
+    </div>
+
+    <div class="col-md-4">
+      <p><strong>Cost Price:</strong> {{ product.cost_price }} SR</p>
+    </div>
+    <div class="col-md-4">
+      <p><strong>Status:</strong>
+    <span class="badge 
+        {% if product.stock_status == 'in_stock' %}bg-success
+        {% elif product.stock_status == 'almost_done' %}bg-warning text-dark
+        {% elif product.stock_status == 'out_of_stock' %}bg-danger
+        {% else %}bg-secondary
+        {% endif %}">
+        {{ product.get_stock_status_display }}
+    </span>
+      </p>
+    </div>
+    <div class="col-md-4">
+      <p><strong>Expiry Date:</strong> 
+        {% if product.expiry_date %}
+          {{ product.expiry_date|date:"Y-m-d" }}
+        {% else %}
+          <span class="text-muted">N/A</span>
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="col-12">
+      <p><strong>Suppliers:</strong>
+        {% for supplier in product.supplier.all %}
+          <span class="badge bg-info text-dark me-1">{{ supplier.name }}</span>
+        {% empty %}
+          <span class="text-muted">No suppliers</span>
+        {% endfor %}
+      </p>
+    </div>
+
+    <div class="col-12 mt-3">
+      <p class="text-muted"><small>Created: {{ product.created_at|date:"Y-m-d H:i" }} | Updated: {{ product.updated_at|date:"Y-m-d H:i" }}</small></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
