@@ -204,6 +204,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+<<<<<<< HEAD
 
 stocker-a3fe4-firebase-adminsdk-*.json
 
+=======
+>>>>>>> 93c65be4906da29330fd850b320161ef5417f727

@@ -1,4 +1,5 @@
 from django.contrib import admin
+<<<<<<< HEAD
 from .models import Category, Supplier, Product
 
 
@@ -46,3 +47,7 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('created_at', 'updated_at')
         }),
     )
+=======
+
+# Register your models here.
+>>>>>>> 93c65be4906da29330fd850b320161ef5417f727

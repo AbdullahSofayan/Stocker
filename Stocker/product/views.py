@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 from django.http import HttpRequest
 from django.shortcuts import render, redirect
 from .models import Product, Supplier, Category
@@ -55,3 +56,8 @@ def add_product_view(request: HttpRequest):
 
 
     return render(request, 'add_product.html', {'today_date': today, 'suppliers': suppliers, 'categories': categories})
+=======
+from django.shortcuts import render
+
+# Create your views here.
+>>>>>>> 93c65be4906da29330fd850b320161ef5417f727

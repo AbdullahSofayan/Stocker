@@ -2,6 +2,7 @@ from django.db import models
 
 # Create your models here.
 
+<<<<<<< HEAD
 class Category(models.Model):
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True, null=True)
@@ -50,3 +51,9 @@ class Product(models.Model):
     def __str__(self):
         return self.name
 
+=======
+class Product(models.Model):
+
+    name = models.CharField(max_length=1024)
+    
+>>>>>>> 93c65be4906da29330fd850b320161ef5417f727
