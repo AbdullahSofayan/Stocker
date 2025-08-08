@@ -18,7 +18,7 @@ class Supplier(models.Model):
     
     name = models.CharField(max_length=255, unique=True)
     phone = models.CharField(max_length=50, blank=True, null=True)
-
+    image = models.ImageField(upload_to='images/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -2,16 +2,7 @@
 {% load static %}
 
 {% block title %}Inventory{% endblock %}
-{% block search %}
-<!-- Search -->
-<div class="flex-grow-1 d-flex justify-content-center">
-    <div class="search-box d-flex align-items-center">
-        <i class="bi bi-search me-2"></i>
-        <input type="search" class="form-control border-0 shadow-none" placeholder="Search product">
-    </div>
-</div>
 
-{% endblock %}
 
 {% block main %}
 <div class="container py-4">
@@ -23,12 +14,81 @@
             </div>
         {% endfor %}
     {% endif %}
+    
+    <!-- Search -->
+    <div class="flex-grow-1 d-flex justify-content-center">
+        <form class="search-box d-flex align-items-center w-100"  method="get" action="" role="search" style="max-width:560px;">
+            
+            <i class="bi bi-search me-2"></i>
+            <input type="search" name="q" class="form-control border-0 shadow-none"
+                    placeholder="Search product, SKU"
+                    value="{{ request.GET.q|default:'' }}">
+
+        </form>
+        
+    </div>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="m-0">Inventory</h2>
         <a href="{% url 'product:add_product_view' %}" class="btn btn-sm btn-primary d-flex align-items-center" style="height: 38px;">
             <i class="bi bi-plus-lg me-1"></i>Add
         </a>
     </div>
+
+        <!-- Filter bar -->
+    <form method="get" class="row gy-2 gx-2 align-items-end mb-4">
+
+    <!-- Category Filter -->
+    <div class="col-12 col-md-3">
+        <label class="form-label small text-muted mb-1">Category</label>
+        <select name="category" class="form-select">
+            <option value="">All categories</option>
+            {% for c in categories %}
+              <option value="{{ c.id }}"
+                {% if request.GET.category|default:'' == c.id|stringformat:"s" %}selected{% endif %}>
+                {{ c.name }}
+              </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Supplier Checkboxes -->
+    <div class="col-12 col-md-4">
+        <label class="form-label small text-muted mb-1">Suppliers</label>
+        <div class="border rounded p-2" style="max-height:100px; overflow-y:auto;">
+            {% for s in suppliers %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                            name="supplier" value="{{ s.id }}"
+                            {% if s.id|stringformat:"s" in selected_suppliers %}checked{% endif %}>
+                    <label class="form-check-label">{{ s.name }}</label>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Status + Buttons -->
+    <div class="col-12 col-md-5 d-flex align-items-end gap-2">
+        <div class="flex-grow-1">
+            <label class="form-label small text-muted mb-1">Status</label>
+            <select name="status" class="form-select">
+                <option value="">Any status</option>
+                {% for code,label in stock_status_choices %}
+                  <option value="{{ code }}"
+                    {% if request.GET.status|default:'' == code %}selected{% endif %}>
+                    {{ label }}
+                  </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="d-flex gap-2 mb-1">
+            <button type="submit" class="btn btn-primary">Apply</button>
+            <a href="{% url 'product:inventory_view' %}" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </div>
+
+</form>
+
+
     
     
     <div class="row g-4">
@@ -186,8 +246,9 @@
         </div>
 
         {% empty %}
-        <p class="text-muted">No products found.</p>
-
+            <div class="alert alert-warning alert-dismissible fade show" role="alert"> 
+                 No products found.
+            </div>
 
         {% endfor %}
         
