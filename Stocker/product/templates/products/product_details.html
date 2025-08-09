@@ -19,14 +19,21 @@
     </div>
 
     <div class="col-md-7">
-      <h2 class="mb-3">{{ product.name }}</h2>
+      <div class="d-flex justify-content-between">
+        <h2 class="mb-3">{{ product.name }}</h2>
+        <button type="button" class="btn btn-outline-secondary"
+                onclick="if (window.history.length > 1) { history.back(); } else { window.location.href='{% url 'product:inventory_view' %}'; }">
+          <i class="bi bi-arrow-left"></i> Back
+        </button>
+
+      </div>
       <p class="text-muted"><strong>SKU:</strong> {{ product.sku }}</p>
       <p><strong>Description:</strong></p>
       <p class="border p-3 rounded bg-light">{{ product.description|default:"No description provided." }}</p>
     </div>
   </div>
 
-  <hr>
+  <hr> 
 
   <div class="row g-3">
     <div class="col-md-4">

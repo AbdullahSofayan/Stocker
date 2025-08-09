@@ -1,0 +1,160 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block title %}{{ supplier.name }} details{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+
+  <!-- Page header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-bold mb-0">
+      <i class="bi bi-truck me-2"></i>{{ supplier.name }}
+    </h2>
+
+    <div class="d-flex gap-2">
+      <a href="{% url 'product:suppliers_view' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Back
+      </a>     
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 rounded-3">
+    <div class="card-body">
+      <div class="row g-4 align-items-center">
+
+        <!-- Avatar / Image -->
+        <div class="col-12 col-md-auto text-center">
+          {% if supplier.image and supplier.image.name %}
+            <img src="{{ supplier.image.url }}"
+                 alt="{{ supplier.name }}"
+                 class="rounded-circle border shadow-sm"
+                 style="width: 120px; height: 120px; object-fit: cover;">
+          {% else %}
+            <div class="rounded-circle border shadow-sm d-flex align-items-center justify-content-center bg-light"
+                 style="width: 120px; height: 120px;">
+              <i class="bi bi-person-circle text-muted" style="font-size: 3rem;"></i>
+            </div>
+          {% endif %}
+        </div>
+
+        
+        <div class="col">
+          <h4 class="mb-2">{{ supplier.name }}</h4>
+
+          <div class="row g-3">
+            
+            <div class="col-12 col-md-6">
+              <div class="d-flex align-items-start">
+                <i class="bi bi-telephone me-2 text-muted"></i>
+                <div>
+                  <div class="small text-muted">Phone</div>
+                  <div>{{ supplier.phone|default:"—" }}</div>
+                </div>
+              </div>
+            </div>
+
+           
+            <div class="col-12 col-md-6">
+              <div class="d-flex align-items-start">
+                <i class="bi bi-envelope me-2 text-muted"></i>
+                <div>
+                  <div class="small text-muted">Email</div>
+                  {% if supplier.email %}
+                    <a href="mailto:{{ supplier.email }}">{{ supplier.email }}</a>
+                  {% else %}
+                    <div>—</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <div class="d-flex align-items-start">
+                <i class="bi bi-globe2 me-2 text-muted"></i>
+                <div>
+                  <div class="small text-muted">Website</div>
+                  {% if supplier.website %}
+                    <a href="{{ supplier.website }}" target="_blank" rel="noopener">
+                      {{ supplier.website }}
+                    </a>
+                  {% else %}
+                    <div>—</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <div class="d-flex align-items-start">
+                <i class="bi bi-clock-history me-2 text-muted"></i>
+                <div>
+                  <div class="small text-muted">Timestamps</div>
+                  <div>
+                    <span class="me-3">
+                      <i class="bi bi-calendar-event me-1"></i>
+                      Created: {{ supplier.created_at|date:"M d, Y" }}
+                    </span>
+                    <span class="text-muted">
+                      <i class="bi bi-arrow-repeat me-1"></i>
+                      Updated: {{ supplier.updated_at|date:"M d, Y" }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+<div class="mt-4">
+  <h5 class="mb-3"><i class="bi bi-box-seam me-2"></i>Products from {{ supplier.name }}</h5>
+
+  {% if products_by_supplier %}
+    <div class="row g-4">
+      {% for product in products_by_supplier %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+          <div class="card h-100 shadow-sm border-0 rounded-3">
+
+            
+            {% if product.image %}
+              <img src="{{ product.image.url }}"
+                   class="card-img-top"
+                   alt="{{ product.name }}"
+                   style="height: 180px; object-fit: contain;">
+            {% else %}
+              <div class="d-flex align-items-center justify-content-center bg-light"
+                   style="height: 180px;">
+                <i class="bi bi-image text-muted" style="font-size: 2rem;"></i>
+              </div>
+            {% endif %}
+
+            <div class="card-body">
+              <h6 class="card-title fw-semibold mb-1">{{ product.name }}</h6>
+              {% if product.category %}
+                <p class="text-muted small mb-2">
+                  <i class="bi bi-tag me-1"></i>{{ product.category.name }}
+                </p>
+              {% endif %}
+              <p class="fw-bold text-primary mb-0">{{ product.cost_price }} SR</p>
+            </div>
+
+            <div class="card-footer bg-white border-0">
+              <a href="{% url 'product:details_product_view' product.id %}" class="btn btn-sm btn-outline-primary w-100">
+                <i class="bi bi-eye"></i> View Details
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="text-muted fst-italic">No products found for this supplier.</div>
+  {% endif %}
+</div>
+
+ 
+</div>
+{% endblock %}

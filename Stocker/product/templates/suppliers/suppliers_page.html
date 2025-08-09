@@ -15,17 +15,35 @@
   {% endif %}
 
   <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-5">
     <h2 class="fw-bold"><i class="bi bi-truck me-2"></i>Suppliers</h2>
+      <div class="flex-grow-1 d-flex justify-content-center">
+      <form class="search-box d-flex align-items-center w-100"  method="get" action="" role="search" style="max-width:560px;">
+          <i class="bi bi-search me-2"></i>
+          <input type="search" name="q" class="form-control border-0 shadow-none"
+                  placeholder="Search Suppliers"
+                  value="{{ request.GET.q|default:'' }}">
+          <a href="{% url 'product:suppliers_view' %}" class="btn btn-outline-secondary">Clear</a>
+
+      </form>
+
+      
+  </div>
+
     <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
       <i class="bi bi-plus"></i> Add Supplier
     </button>
+    
+
   </div>
+  
+
 
   {% if suppliers %}
     <div class="row g-4">
       {% for supplier in suppliers %}
       <div class="col-md-4 col-lg-3">
+        <a href="{% url 'product:supplier_details_view' supplier.id %}" style="text-decoration: none; color: black;">
         <div class="card h-100 shadow-sm border-0 rounded-3">
 
 
@@ -49,7 +67,7 @@
                     <i class="bi bi-telephone me-1"></i> {{ supplier.phone|default:"—" }}
                 </p>
             </div>
-
+        </a>
 
 
           <div class="card-footer bg-white border-0 d-flex justify-content-between align-items-center">
@@ -88,8 +106,18 @@
                 </div>
                 <div class="mb-3">
                   <label class="form-label">Phone</label>
-                  <input type="text" name="phone" class="form-control" value="{{ supplier.phone }}">
+                  <input type="text" name="phone" class="form-control" value="{{ supplier.phone }}" required>
                 </div>
+                <div class="mb-3">
+                  <label class="form-label">Email</label>
+                  <input type="email" name="email" class="form-control" value="{{ supplier.email }}">
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Website</label>
+                  <input type="url" name="website" class="form-control" value="{{ supplier.website }}">
+                </div>
+
                   <div class="mb-3">
                     <label class="form-label">Image</label>
                     {% if supplier.image %}
@@ -167,8 +195,18 @@
           </div>
           <div class="mb-3">
             <label class="form-label">Phone</label>
-            <input type="text" name="phone" class="form-control" placeholder="Optional">
+            <input type="text" name="phone" class="form-control" placeholder="Phone number" required>
           </div>
+          <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" placeholder="Optional">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Website</label>
+            <input type="url" name="website" class="form-control" placeholder="Optional">
+          </div>
+
         <div class="mb-3">
             <label class="form-label">Image</label>
             <input type="file" name="image" class="form-control">

@@ -17,6 +17,8 @@ urlpatterns = [
     path('suppliers/add', views.add_supplier_view, name='add_supplier_view'),
     path('suppliers/<int:supplier_id>/delete/', views.delete_supplier_view, name='delete_supplier_view'),
     path('suppliers/<int:supplier_id>/edit/', views.edit_supplier_view, name='edit_supplier_view'),
+    path('suppliers/<int:supplier_id>/details/', views.supplier_details_view, name='supplier_details_view'),
+
 
 
 

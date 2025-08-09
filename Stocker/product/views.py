@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from .models import Product, Supplier, Category
 from datetime import date
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, Count
 # Create your views here.
 
 def inventory_view(request: HttpRequest):
@@ -26,7 +26,13 @@ def inventory_view(request: HttpRequest):
 
 
     if selected_suppliers:
-        products = products.filter(supplier__id__in=selected_suppliers).distinct()
+        n = len(selected_suppliers) # Number of suppliers the user picked.
+
+        products = (
+            products.annotate(
+                total_suppliers=Count('supplier', distinct=True),matched_suppliers=Count('supplier',filter=Q(supplier__id__in=selected_suppliers),distinct=True),
+            ).filter(matched_suppliers=n).filter(total_suppliers=n)
+        )
 
     if status:
         products = products.filter(stock_status=status)
@@ -204,6 +210,11 @@ def add_category_view(request: HttpRequest):
 
 def suppliers_view(request:HttpRequest):
     suppliers = Supplier.objects.all()
+    q = (request.GET.get('q') or '').strip()
+
+    if q:
+        suppliers = suppliers.filter(Q(name__icontains=q))
+        
     return render(request, "suppliers/suppliers_page.html", {'suppliers':suppliers})
 
 
@@ -213,12 +224,16 @@ def add_supplier_view(request: HttpRequest):
     if request.method == 'POST':
         name = request.POST.get("name")
         phone = request.POST.get("phone")
+        email = request.POST.get("email")
+        website = request.POST.get("website")
         image = request.FILES.get("image")
 
         try:
             Supplier.objects.create (
                 name = name,
                 phone = phone,
+                email = email,
+                website = website,
                 image=image
             )
             messages.success(request, "Supplier added successfully.", "alert-success")
@@ -248,6 +263,8 @@ def edit_supplier_view(request: HttpRequest, supplier_id):
         try:
             supplier.name = request.POST.get('name', supplier.name)
             supplier.phone = request.POST.get('phone', '')
+            supplier.email = request.POST.get('email', '')
+            supplier.website = request.POST.get('website', '')
             image_file = request.FILES.get('image')
             if image_file:
                 supplier.image = image_file
@@ -257,3 +274,11 @@ def edit_supplier_view(request: HttpRequest, supplier_id):
             messages.error(request, "Supplier Couldn't updated.", "alert-danger")
 
     return redirect('product:suppliers_view')
+
+
+def supplier_details_view(request, supplier_id):
+    
+    supplier = get_object_or_404(Supplier, id = supplier_id)
+    products_by_supplier = Product.objects.filter(supplier = supplier)
+
+    return render(request, "suppliers/supplier_details.html", {'supplier': supplier, 'products_by_supplier': products_by_supplier})
