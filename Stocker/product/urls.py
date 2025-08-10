@@ -18,6 +18,10 @@ urlpatterns = [
     path('suppliers/<int:supplier_id>/delete/', views.delete_supplier_view, name='delete_supplier_view'),
     path('suppliers/<int:supplier_id>/edit/', views.edit_supplier_view, name='edit_supplier_view'),
     path('suppliers/<int:supplier_id>/details/', views.supplier_details_view, name='supplier_details_view'),
+    path("export/csv/", views.export_products_csv, name="export_products_csv"),
+    path("import/csv/", views.import_products_csv, name="import_products_csv"),
+    path("reports/inventory.csv", views.inventory_report_csv, name="inventory_report_csv"),
+    path("reports/suppliers.csv", views.supplier_report_csv, name="supplier_report_csv"),
 
 
 

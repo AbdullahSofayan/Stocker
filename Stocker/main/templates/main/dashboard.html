@@ -9,25 +9,25 @@
     <div class="col-md-3">
       <div class="card shadow-sm p-3 text-center">
         <h6>Total Products</h6>
-        <h3 class="fw-bold">1,250</h3>
+        <h3 class="fw-bold">{{ stats.total_products }}</h3>
       </div>
     </div>
     <div class="col-md-3">
       <div class="card shadow-sm p-3 text-center">
         <h6 class="text-warning">Low Stock Products</h6>
-        <h3 class="fw-bold text-warning">8</h3>
+        <h3 class="fw-bold text-warning">{{ stats.low_stock }}</h3>
       </div>
     </div>
     <div class="col-md-3">
       <div class="card shadow-sm p-3 text-center">
         <h6 class="text-danger">Out of Stock</h6>
-        <h3 class="fw-bold text-danger">2</h3>
+        <h3 class="fw-bold text-danger">{{ stats.out_of_stock }}</h3>
       </div>
     </div>
     <div class="col-md-3">
       <div class="card shadow-sm p-3 text-center">
         <h6 class="text-success">Total Categories</h6>
-        <h3 class="fw-bold text-success">15</h3>
+        <h3 class="fw-bold text-success">{{ stats.total_categories }}</h3>
       </div>
     </div>
   </div>
@@ -37,18 +37,24 @@
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
         <h6>Low Stock</h6>
-        <table class="table table-sm">
+        <table class="table table-sm align-middle">
           <thead>
             <tr>
               <th>Product</th>
-              <th>Quantity</th>
+              <th>Qty</th>
               <th>Reorder</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>Product A</td><td>3</td><td>10</td></tr>
-            <tr><td>Product B</td><td>5</td><td>15</td></tr>
-            <tr><td>Product C</td><td>7</td><td>20</td></tr>
+            {% for p in low_stock_rows %}
+              <tr>
+                <td>{{ p.name }}</td>
+                <td>{{ p.quantity }}</td>
+                <td>{{ p.reorder_level }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3" class="text-muted">Nothing low right now.</td></tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>
@@ -57,18 +63,23 @@
     <!-- Expiring Soon Table -->
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
-        <h6>Expiring Soon</h6>
-        <table class="table table-sm">
+        <h6>Expiring Soon (30 days)</h6>
+        <table class="table table-sm align-middle">
           <thead>
             <tr>
-              <th>Expiry Date</th>
-              <th>Quantity</th>
+              <th>Product</th>
+              <th>Expiry</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>07/16/2025</td><td>30</td></tr>
-            <tr><td>07/20/2025</td><td>25</td></tr>
-            <tr><td>07/26/2025</td><td>20</td></tr>
+            {% for p in expiring_rows %}
+              <tr>
+                <td>{{ p.name }}</td>
+                <td>{{ p.expiry_date|date:"M d, Y" }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="2" class="text-muted">No upcoming expiries.</td></tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>
@@ -79,9 +90,14 @@
       <div class="card shadow-sm p-3">
         <h6>Recent Activity</h6>
         <ul class="list-group list-group-flush">
-          <li class="list-group-item">Product J Added</li>
-          <li class="list-group-item">Stock update for Product B</li>
-          <li class="list-group-item">Supplier Z Updated</li>
+          {% for r in recent_activity %}
+            <li class="list-group-item d-flex justify-content-between">
+              <span>{{ r.name }}</span>
+              <small class="text-muted">{{ r.updated_at|date:"M d, Y H:i" }}</small>
+            </li>
+          {% empty %}
+            <li class="list-group-item text-muted">No recent updates.</li>
+          {% endfor %}
         </ul>
       </div>
     </div>
@@ -99,7 +115,7 @@
     <!-- Top Products Chart -->
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
-        <h6>Top 6 Products</h6>
+        <h6>Top 6 Products (by Quantity)</h6>
         <canvas id="topProductsChart"></canvas>
       </div>
     </div>
@@ -107,47 +123,95 @@
     <!-- Stock Changes Chart -->
     <div class="col-md-4">
       <div class="card shadow-sm p-3">
-        <h6>Stock Changes</h6>
+        <h6>Updates in last 7 days</h6>
         <canvas id="stockChangesChart"></canvas>
       </div>
     </div>
   </div>
 
   <div class="row g-3 mt-3">
-    <!-- Notifications -->
-    <div class="col-md-6">
-      <div class="card shadow-sm p-3">
-        <h6>Notifications</h6>
-        <ul class="list-group list-group-flush">
-          <li class="list-group-item text-danger">Low stock on Product A</li>
-          <li class="list-group-item text-warning">Expiry date near for Supplier 1</li>
-          <li class="list-group-item text-success">CSV export successful</li>
-        </ul>
-      </div>
-    </div>
-
     <!-- Supplier Performance -->
     <div class="col-md-6">
       <div class="card shadow-sm p-3">
         <h6>Supplier Performance</h6>
-        <table class="table table-sm">
+        <table class="table table-sm align-middle">
           <thead>
             <tr>
               <th>Supplier</th>
-              <th>Total Products Supplied</th>
+              <th>Total Products</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>Supplier X</td><td>356</td></tr>
-            <tr><td>Supplier Y</td><td>225</td></tr>
-            <tr><td>Supplier Z</td><td>160</td></tr>
+            {% for s in supplier_perf %}
+              <tr>
+                <td>{{ s.name }}</td>
+                <td>{{ s.total_products }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="2" class="text-muted">No suppliers yet.</td></tr>
+            {% endfor %}
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Notifications (basic examples) -->
+    <div class="col-md-6">
+      <div class="card shadow-sm p-3">
+        <h6>Notifications</h6>
+        <ul class="list-group list-group-flush">
+          {% for p in low_stock_rows %}
+            <li class="list-group-item text-warning">
+              Low stock: {{ p.name }} ({{ p.quantity }}/{{ p.reorder_level }})
+            </li>
+          {% empty %}
+            <li class="list-group-item text-success">All stocks look healthy.</li>
+          {% endfor %}
+          {% for p in expiring_rows %}
+            <li class="list-group-item text-danger">
+              Expires soon: {{ p.name }} ({{ p.expiry_date|date:"M d, Y" }})
+            </li>
+          {% endfor %}
+        </ul>
       </div>
     </div>
   </div>
 </div>
 
+{# ---- Chart data & scripts ---- #}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Data from Django
+  const STATUS = {{ chart_status|safe }};
+  const TOP    = {{ chart_top_products|safe }};
+  const DAILY  = {{ chart_daily|safe }};
 
+  // Stock Overview (pie)
+  new Chart(document.getElementById('stockOverviewChart'), {
+    type: 'pie',
+    data: {
+      labels: STATUS.map(x => x.stock_status || 'unknown'),
+      datasets: [{ data: STATUS.map(x => x.total) }]
+    }
+  });
+
+  // Top Products (bar)
+  new Chart(document.getElementById('topProductsChart'), {
+    type: 'bar',
+    data: {
+      labels: TOP.map(x => x.name),
+      datasets: [{ label: 'Qty', data: TOP.map(x => x.quantity) }]
+    },
+    options: { scales: { y: { beginAtZero: true } } }
+  });
+
+  // Stock changes (line)
+  new Chart(document.getElementById('stockChangesChart'), {
+    type: 'line',
+    data: {
+      labels: DAILY.map(x => x.label),
+      datasets: [{ label: 'Updates', data: DAILY.map(x => x.count) }]
+    }
+  });
+</script>
 {% endblock %}
-

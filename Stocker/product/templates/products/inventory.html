@@ -27,12 +27,43 @@
         </form>
         
     </div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="m-0">Inventory</h2>
-        <a href="{% url 'product:add_product_view' %}" class="btn btn-sm btn-primary d-flex align-items-center" style="height: 38px;">
-            <i class="bi bi-plus-lg me-1"></i>Add
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center justify-content-between mt-5">
+        <!-- Add Button -->
+        <a href="{% url 'product:add_product_view' %}" class="btn btn-primary d-flex align-items-center gap-1">
+            <i class="bi bi-plus-lg"></i> Add Product
         </a>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Export Button -->
+            <a class="btn btn-outline-secondary d-flex align-items-center gap-1"
+            href="{% url 'product:export_products_csv' %}">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+
+            <!-- Import Form -->
+            <form method="post" action="{% url 'product:import_products_csv' %}" enctype="multipart/form-data"
+                class="d-flex align-items-center gap-2">
+                {% csrf_token %}
+                <label class="btn btn-outline-primary m-0">
+                    <i class="bi bi-upload"></i> Choose CSV
+                    <input type="file" name="csv_file" accept=".csv" hidden required>
+                </label>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check2-circle"></i> Import
+                </button>
+            </form>
+                    <a class="btn btn-outline-dark d-flex align-items-center gap-1"
+            href="{% url 'product:inventory_report_csv' %}?{{ request.GET.urlencode }}">
+            <i class="bi bi-clipboard-data"></i> Inventory Report
+        </a>
+        </div>
+
+
+
+
+
     </div>
+
+
 
         <!-- Filter bar -->
     <form method="get" class="row gy-2 gx-2 align-items-end mb-4">
@@ -192,7 +223,6 @@
                         <option value="in_stock" {% if product.stock_status == 'in_stock' %}selected{% endif %}>In Stock</option>
                         <option value="almost_done" {% if product.stock_status == 'almost_done' %}selected{% endif %}>Almost Done</option>
                         <option value="out_of_stock" {% if product.stock_status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
-                        <option value="discontinued" {% if product.stock_status == 'discontinued' %}selected{% endif %}>Discontinued</option>
                     </select>
                 </div>
 
@@ -254,6 +284,88 @@
         
         
     </div>
+<nav class="mt-4 d-flex justify-content-center">
+  <ul class="pagination pagination-sm pagination-rounded shadow-sm">
     
+    <!-- Previous -->
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.previous_page_number }}">
+          &laquo; Prev
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">&laquo; Prev</span>
+      </li>
+    {% endif %}
+
+    <!-- First page + leading dots -->
+    {% if page_obj.number > 3 %}
+      <li class="page-item"><a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page=1">1</a></li>
+      {% if page_obj.number > 4 %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endif %}
+
+    <!-- Page numbers -->
+    {% for num in page_obj.paginator.page_range %}
+      {% if num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+          <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ num }}">{{ num }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+
+    <!-- Trailing dots + last page -->
+    {% if page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+      {% if page_obj.number < page_obj.paginator.num_pages|add:'-3' %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+          {{ page_obj.paginator.num_pages }}
+        </a>
+      </li>
+    {% endif %}
+
+    <!-- Next -->
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.next_page_number }}">
+          Next &raquo;
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">Next &raquo;</span>
+      </li>
+    {% endif %}
+
+  </ul>
+</nav>
+
+
 </div>
+<style>
+    .pagination-rounded .page-link {
+    border-radius: 50px !important;
+    margin: 0 2px;
+    padding: 6px 12px;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination-rounded .page-link:hover {
+    background-color: #f0f0f0;
+    color: #000;
+}
+
+.pagination-rounded .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+    font-weight: 600;
+}
+
+</style>
 {% endblock %}

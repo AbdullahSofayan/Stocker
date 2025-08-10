@@ -29,10 +29,16 @@
 
       
   </div>
-
+    <div class="d-flex gap-2">
     <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
       <i class="bi bi-plus"></i> Add Supplier
     </button>
+
+    <a class="btn btn-outline-dark d-flex align-items-center gap-1"
+     href="{% url 'product:supplier_report_csv' %}?{{ request.GET.urlencode }}">
+     <i class="bi bi-truck"></i> Supplier Report
+    </a>
+    </div>
     
 
   </div>

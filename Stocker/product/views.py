@@ -1,9 +1,13 @@
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from .models import Product, Supplier, Category
 from datetime import date
 from django.contrib import messages
-from django.db.models import Q, Count
+from django.db.models import Count, Sum, F, Case, When, IntegerField, DecimalField, Q
+import csv, io
+from django.utils import timezone
+from django.core.paginator import Paginator
+
 # Create your views here.
 
 def inventory_view(request: HttpRequest):
@@ -37,10 +41,20 @@ def inventory_view(request: HttpRequest):
     if status:
         products = products.filter(stock_status=status)
 
+    # --- pagination ---
+    paginator = Paginator(products, 12) 
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    # keep all current query params except 'page'
+    params = request.GET.copy()
+    params.pop('page', None)
+    base_qs = params.urlencode()
 
 
 
-    return render(request, 'products/inventory.html', {'today_date': today, 'products': products, 'categories': categories, 'suppliers': suppliers, "stock_status_choices": Product.STOCK_STATUS_CHOICES, 'selected_suppliers': selected_suppliers})
+    return render(request, 'products/inventory.html', {'base_qs': base_qs, 'today_date': today, 'products': page_obj, 'page_obj': page_obj, 'categories': categories,
+     'suppliers': suppliers, "stock_status_choices": Product.STOCK_STATUS_CHOICES, 'selected_suppliers': selected_suppliers})
 
 def add_product_view(request: HttpRequest):
     suppliers = Supplier.objects.all()
@@ -117,7 +131,19 @@ def edit_product_view(request, product_id):
         else:
             product.expiry_date = None
 
-        product.stock_status= request.POST.get("stock_status")
+        print(type(product.quantity))
+        print(type(product.reorder_level))
+
+        if product.quantity == '0':
+            product.stock_status = "out_of_stock"
+        elif int(product.quantity) < int(product.reorder_level):
+            product.stock_status = "almost_done"
+        else:
+            product.stock_status = "in_stock"
+
+
+        
+
         product.description= request.POST.get("description")
 
         image_file = request.FILES.get("image")
@@ -282,3 +308,316 @@ def supplier_details_view(request, supplier_id):
     products_by_supplier = Product.objects.filter(supplier = supplier)
 
     return render(request, "suppliers/supplier_details.html", {'supplier': supplier, 'products_by_supplier': products_by_supplier})
+
+
+def _sanitize_csv(text: str) -> str:
+    """
+    Prevent CSV injection when opening in Excel by prefixing risky values.
+    """
+    if text and text[0] in ("=", "+", "-", "@"):
+        return "'" + text
+    return text
+
+
+
+def export_products_csv(request):
+    qs = Product.objects.all()
+
+    timestamp = timezone.now().strftime("%Y%m%d-%H%M%S")
+    filename = f"products-{timestamp}.csv"
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+    # Write BOM so Excel opens UTF-8 correctly (helps with Arabic)
+    response.write("\ufeff")
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "ID",
+        "Name",
+        "SKU",
+        "Category",
+        "Suppliers",
+        "Cost Price",
+        "Quantity",
+        "Reorder Level",
+        "Stock Status",
+        "Expiry Date",
+        "Description",
+        "Image URL",
+        "Created",
+        "Updated",
+    ])
+
+    for p in qs.select_related("category").prefetch_related("supplier"):
+        suppliers = ", ".join(s.name for s in p.supplier.all())
+        expiry = p.expiry_date.strftime("%Y-%m-%d") if p.expiry_date else ""
+        img_url = p.image.url if (p.image and p.image.name) else ""
+
+        writer.writerow([
+            p.id,
+            _sanitize_csv(p.name or ""),
+            _sanitize_csv(p.sku or ""),
+            p.category.name if p.category_id else "",
+            suppliers,
+            str(p.cost_price or ""),
+            p.quantity,
+            p.reorder_level,
+            p.stock_status,
+            expiry,
+            (p.description or "").replace("\r\n", " ").replace("\n", " "),
+            img_url,
+            p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "",
+            p.updated_at.strftime("%Y-%m-%d %H:%M") if p.updated_at else "",
+        ])
+
+    return response
+
+def import_products_csv(request):
+    if request.method == "POST" and request.FILES.get("csv_file"):
+        csv_file = request.FILES["csv_file"]
+
+        if not csv_file.name.endswith(".csv"):
+            messages.error(request, "Please upload a CSV file.")
+            return redirect("product:inventory_view")
+
+        # Decode and read CSV
+        try:
+            data_set = csv_file.read().decode("utf-8-sig")  # handles BOM
+        except UnicodeDecodeError:
+            messages.error(request, "Invalid file encoding. Please use UTF-8.")
+            return redirect("product:inventory_view")
+
+        io_string = io.StringIO(data_set)
+        reader = csv.DictReader(io_string)
+
+        imported_count = 0
+        for row in reader:
+            sku = row.get("SKU", "").strip()
+            if not sku:
+                continue
+
+            category_name = row.get("Category", "").strip()
+            category_obj = None
+            if category_name:
+                category_obj, _ = Category.objects.get_or_create(name=category_name)
+
+            product, created = Product.objects.update_or_create(
+                sku=sku,
+                defaults={
+                    "name": row.get("Name", "").strip(),
+                    "category": category_obj,
+                    "description": row.get("Description", "").strip(),
+                    "quantity": int(row.get("Quantity", 0) or 0),
+                    "reorder_level": int(row.get("Reorder Level", 0) or 0),
+                    "cost_price": row.get("Cost Price", 0) or 0,
+                    "stock_status": row.get("Stock Status", "in_stock"),
+                },
+            )
+
+            supplier_names = row.get("Suppliers", "")
+            if supplier_names:
+                supplier_list = []
+                for s_name in supplier_names.split(","):
+                    s_name = s_name.strip()
+                    if s_name:
+                        supplier_obj, _ = Supplier.objects.get_or_create(name=s_name)
+                        supplier_list.append(supplier_obj)
+                product.supplier.set(supplier_list)
+
+            imported_count += 1
+
+        messages.success(request, f"Imported {imported_count} products successfully!")
+        return redirect("product:inventory_view")
+
+    messages.error(request, "No file uploaded.")
+    return redirect("product:inventory_view")
+
+
+
+def _sanitize_csv(text: str) -> str:
+    if text and str(text)[0] in ("=", "+", "-", "@"):
+        return "'" + str(text)
+    return str(text)
+
+def _ts_filename(prefix: str, ext="csv"):
+    return f'{prefix}-{timezone.now().strftime("%Y%m%d-%H%M%S")}.{ext}'
+
+def inventory_report_csv(request):
+    # Optional: respect same filters as inventory page
+    qs = Product.objects.select_related("category").prefetch_related("supplier").all()
+
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(sku__icontains=q))
+
+    category_id = request.GET.get("category")
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+
+    selected_suppliers = request.GET.getlist("supplier")
+    if selected_suppliers:
+        n = len(selected_suppliers)
+        qs = (
+            qs.annotate(
+                total_suppliers=Count('supplier', distinct=True),
+                matched_suppliers=Count('supplier', filter=Q(supplier__id__in=selected_suppliers), distinct=True),
+            )
+            .filter(matched_suppliers=n)
+            .filter(total_suppliers=n)
+        )
+
+    status = request.GET.get("status")
+    if status:
+        qs = qs.filter(stock_status=status)
+
+    # KPI aggregates
+    totals = qs.aggregate(
+        total_products=Count("id"),
+        total_qty=Sum("quantity"),
+        total_value=Sum(F("quantity") * F("cost_price"), output_field=DecimalField()),
+        in_stock=Count(Case(When(stock_status="in_stock", then=1), output_field=IntegerField())),
+        almost_done=Count(Case(When(stock_status="almost_done", then=1), output_field=IntegerField())),
+        out_of_stock=Count(Case(When(stock_status="out_of_stock", then=1), output_field=IntegerField())),
+    )
+
+    # Per-category breakdown
+    by_category = (
+        qs.values("category__name")
+          .annotate(
+              products=Count("id"),
+              qty=Sum("quantity"),
+              value=Sum(F("quantity") * F("cost_price"), output_field=DecimalField()),
+          )
+          .order_by("category__name")
+    )
+
+    # CSV response
+    resp = HttpResponse(content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="{_ts_filename("inventory-report")}"'
+    resp.write("\ufeff")
+    w = csv.writer(resp)
+
+    # Header: KPIs section
+    w.writerow(["Inventory Report"])
+    w.writerow(["Generated At", timezone.now().strftime("%Y-%m-%d %H:%M")])
+    w.writerow([])
+    w.writerow(["KPI", "Value"])
+    w.writerow(["Total Products", totals["total_products"] or 0])
+    w.writerow(["Total Quantity", totals["total_qty"] or 0])
+    w.writerow(["Total Inventory Value", totals["total_value"] or 0])
+    w.writerow(["In Stock", totals["in_stock"] or 0])
+    w.writerow(["Almost Done", totals["almost_done"] or 0])
+    w.writerow(["Out of Stock", totals["out_of_stock"] or 0])
+
+    # Category breakdown
+    w.writerow([])
+    w.writerow(["By Category"])
+    w.writerow(["Category", "Products", "Total Qty", "Total Value"])
+    for row in by_category:
+        w.writerow([
+            row["category__name"] or "—",
+            row["products"] or 0,
+            row["qty"] or 0,
+            row["value"] or 0,
+        ])
+
+    # Detailed lines (optional but handy)
+    w.writerow([])
+    w.writerow(["Detailed Products"])
+    w.writerow(["ID","Name","SKU","Category","Suppliers","Cost Price","Qty","Reorder","Status","Expiry Date","Description"])
+    for p in qs:
+        suppliers = ", ".join(s.name for s in p.supplier.all())
+        expiry = p.expiry_date.strftime("%Y-%m-%d") if p.expiry_date else ""
+        w.writerow([
+            p.id,
+            _sanitize_csv(p.name or ""),
+            _sanitize_csv(p.sku or ""),
+            p.category.name if p.category_id else "",
+            suppliers,
+            str(p.cost_price or 0),
+            p.quantity,
+            p.reorder_level,
+            p.stock_status,
+            expiry,
+            (p.description or "").replace("\r\n", " ").replace("\n", " "),
+        ])
+
+    return resp
+
+def supplier_report_csv(request):
+    # Optional filters (same style)
+    qs = Product.objects.all()
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(sku__icontains=q))
+    category_id = request.GET.get("category")
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+    status = request.GET.get("status")
+    if status:
+        qs = qs.filter(stock_status=status)
+
+    supplier_rows = (
+        Supplier.objects.annotate(
+            product_count=Count("products", filter=Q(products__in=qs), distinct=True),
+            total_qty=Sum("products__quantity", filter=Q(products__in=qs)),
+            total_value=Sum(F("products__quantity") * F("products__cost_price"),
+                            filter=Q(products__in=qs),
+                            output_field=DecimalField()),
+            low_stock=Count(
+                Case(When(products__stock_status="almost_done", then=1), output_field=IntegerField()),
+                filter=Q(products__in=qs),
+            ),
+            out_stock=Count(
+                Case(When(products__stock_status="out_of_stock", then=1), output_field=IntegerField()),
+                filter=Q(products__in=qs),
+            ),
+        )
+        .order_by("name")
+    )
+
+    resp = HttpResponse(content_type="text/csv; charset=utf-8")
+    resp["Content-Disposition"] = f'attachment; filename="{_ts_filename("supplier-report")}"'
+    resp.write("\ufeff")
+    w = csv.writer(resp)
+
+    # Summary header
+    w.writerow(["Supplier Report"])
+    w.writerow(["Generated At", timezone.now().strftime("%Y-%m-%d %H:%M")])
+    w.writerow([])
+
+    # Table
+    w.writerow(["Supplier","Products Linked","Total Qty","Total Value","Almost Done","Out of Stock"])
+    for s in supplier_rows:
+        w.writerow([
+            s.name,
+            s.product_count or 0,
+            s.total_qty or 0,
+            s.total_value or 0,
+            s.low_stock or 0,
+            s.out_stock or 0,
+        ])
+
+    # Optional: per-supplier product details
+    w.writerow([])
+    w.writerow(["Details by Supplier"])
+    w.writerow(["Supplier","Product Name","SKU","Category","Qty","Reorder","Status","Cost Price","Line Value"])
+    for s in Supplier.objects.all().order_by("name"):
+        prods = s.products.filter(id__in=qs.values_list("id", flat=True)).select_related("category")
+        for p in prods:
+            line_value = (p.quantity or 0) * (p.cost_price or Decimal("0"))
+            w.writerow([
+                s.name,
+                p.name,
+                p.sku,
+                p.category.name if p.category_id else "",
+                p.quantity,
+                p.reorder_level,
+                p.stock_status,
+                p.cost_price,
+                line_value,
+            ])
+
+    return resp
