@@ -7,9 +7,12 @@ from django.db.models import Count, Sum, F, Case, When, IntegerField, DecimalFie
 import csv, io
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+
 
 # Create your views here.
 
+@login_required
 def inventory_view(request: HttpRequest):
     products = Product.objects.all()
     categories = Category.objects.all()
@@ -56,6 +59,8 @@ def inventory_view(request: HttpRequest):
     return render(request, 'products/inventory.html', {'base_qs': base_qs, 'today_date': today, 'products': page_obj, 'page_obj': page_obj, 'categories': categories,
      'suppliers': suppliers, "stock_status_choices": Product.STOCK_STATUS_CHOICES, 'selected_suppliers': selected_suppliers})
 
+
+@login_required
 def add_product_view(request: HttpRequest):
     suppliers = Supplier.objects.all()
     categories = Category.objects.all()
@@ -107,6 +112,7 @@ def add_product_view(request: HttpRequest):
     return render(request, 'products/add_product.html', {'today_date': today, 'suppliers': suppliers, 'categories': categories})
 
 
+@login_required
 def edit_product_view(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     
@@ -166,27 +172,36 @@ def edit_product_view(request, product_id):
         
         return redirect("product:inventory_view")  
 
-    
+@login_required
 def delete_product_view(request: HttpRequest, product_id):
+
+    if not ( request.user.is_staff and request.user.has_perm('product.delete_product')) :
+        messages.error(request, "You do not have permission to delete products.", "alert-danger")
+        return redirect('product:inventory_view')
+    
     product = get_object_or_404(Product, id=product_id)
     product.delete()
     return redirect('product:inventory_view')
 
-
+@login_required
 def details_product_view(request: HttpRequest, product_id):
     product = get_object_or_404(Product, id=product_id)
 
     return render(request, 'products/product_details.html', {'product': product} )
 
-
+@login_required
 def categories_view(request: HttpRequest):
     categories = Category.objects.all()
     return render(request, 'categories/categories_page.html', {'categories': categories})
 
 
-
+@login_required
 def edit_category_view(request: HttpRequest, category_id):
 
+    if not ( request.user.is_staff and request.user.has_perm('product.edit_category')) :
+        messages.error(request, "You do not have permission to edit category.", "alert-danger")
+        return redirect('product:categories_view')
+    
     category = get_object_or_404(Category, id = category_id)
 
     if request.method == "POST":
@@ -204,7 +219,13 @@ def edit_category_view(request: HttpRequest, category_id):
     return redirect('product:categories_view')
 
 
+@login_required
 def delete_category_view(request: HttpRequest, category_id):
+
+    if not ( request.user.is_staff and request.user.has_perm('product.delete_category')) :
+        messages.error(request, "You do not have permission to delete category.", "alert-danger")
+        return redirect('product:categories_view')
+    
     category = get_object_or_404(Category, id = category_id)
 
     if request.method == "POST":
@@ -214,7 +235,13 @@ def delete_category_view(request: HttpRequest, category_id):
     return redirect('product:categories_view')
 
 
+@login_required
 def add_category_view(request: HttpRequest):
+
+    if not ( request.user.is_staff and request.user.has_perm('product.add_category')) :
+        messages.error(request, "You do not have permission to add category.", "alert-danger")
+        return redirect('product:categories_view')
+    
 
     if request.method == 'POST':
         name = request.POST.get("name")
@@ -234,6 +261,7 @@ def add_category_view(request: HttpRequest):
     return redirect("product:categories_view")
 
 
+@login_required
 def suppliers_view(request:HttpRequest):
     suppliers = Supplier.objects.all()
     q = (request.GET.get('q') or '').strip()
@@ -245,8 +273,13 @@ def suppliers_view(request:HttpRequest):
 
 
 
+@login_required
 def add_supplier_view(request: HttpRequest):
 
+    if not ( request.user.is_staff and request.user.has_perm('product.add_supplier')) :
+        messages.error(request, "You do not have permission to add supplier.", "alert-danger")
+        return redirect('product:suppliers_view')
+    
     if request.method == 'POST':
         name = request.POST.get("name")
         phone = request.POST.get("phone")
@@ -270,7 +303,13 @@ def add_supplier_view(request: HttpRequest):
     return redirect("product:suppliers_view")
 
 
+@login_required
 def delete_supplier_view(request: HttpRequest, supplier_id):
+
+    if not ( request.user.is_staff and request.user.has_perm('product.delete_supplier')) :
+        messages.error(request, "You do not have permission to delete supplier.", "alert-danger")
+        return redirect('product:suppliers_view')
+    
     supplier = get_object_or_404(Supplier, id = supplier_id)
 
     if request.method == "POST":
@@ -281,7 +320,12 @@ def delete_supplier_view(request: HttpRequest, supplier_id):
 
 
 
+@login_required
 def edit_supplier_view(request: HttpRequest, supplier_id):
+
+    if not ( request.user.is_staff and request.user.has_perm('product.edit_supplier')) :
+        messages.error(request, "You do not have permission to edit supplier.", "alert-danger")
+        return redirect('product:suppliers_view')
 
     supplier = get_object_or_404(Supplier, id = supplier_id)
 
@@ -302,6 +346,7 @@ def edit_supplier_view(request: HttpRequest, supplier_id):
     return redirect('product:suppliers_view')
 
 
+@login_required
 def supplier_details_view(request, supplier_id):
     
     supplier = get_object_or_404(Supplier, id = supplier_id)
@@ -320,6 +365,7 @@ def _sanitize_csv(text: str) -> str:
 
 
 
+@login_required
 def export_products_csv(request):
     qs = Product.objects.all()
 
@@ -374,6 +420,7 @@ def export_products_csv(request):
 
     return response
 
+@login_required
 def import_products_csv(request):
     if request.method == "POST" and request.FILES.get("csv_file"):
         csv_file = request.FILES["csv_file"]
@@ -444,6 +491,7 @@ def _sanitize_csv(text: str) -> str:
 def _ts_filename(prefix: str, ext="csv"):
     return f'{prefix}-{timezone.now().strftime("%Y%m%d-%H%M%S")}.{ext}'
 
+@login_required
 def inventory_report_csv(request):
     # Optional: respect same filters as inventory page
     qs = Product.objects.select_related("category").prefetch_related("supplier").all()
@@ -546,6 +594,7 @@ def inventory_report_csv(request):
 
     return resp
 
+@login_required
 def supplier_report_csv(request):
     # Optional filters (same style)
     qs = Product.objects.all()

@@ -3,9 +3,10 @@ from datetime import timedelta
 from django.db.models import Count, F, Q
 from django.utils import timezone
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from product.models import Product, Category, Supplier
 
-
+@login_required
 def dashboard_view(request):
     today = timezone.localdate()
     soon  = today + timedelta(days=30)

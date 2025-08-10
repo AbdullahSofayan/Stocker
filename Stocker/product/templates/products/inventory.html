@@ -153,7 +153,9 @@
 
                     <div class="card-footer bg-white border-0 text-end">
                         <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editModal{{ product.id }}">Edit</button>
+                        {% if request.user.is_staff and perms.product.delete_product%}
                         <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ product.id }}">Delete</button>
+                        {% endif %}
                     </div>
         </div>
             
