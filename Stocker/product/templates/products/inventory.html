@@ -56,7 +56,10 @@
             <i class="bi bi-clipboard-data"></i> Inventory Report
         </a>
         </div>
-
+        <a class="btn btn-outline-dark d-flex align-items-center gap-1"
+   href="{% url 'product:supplier_report_view' %}?{{ request.GET.urlencode }}">
+  <i class="bi bi-graph-up"></i> Supplier Charts
+</a>
 
 
 

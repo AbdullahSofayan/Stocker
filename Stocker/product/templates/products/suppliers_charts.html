@@ -1,0 +1,195 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Supplier Report</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    .card { border: 0; box-shadow: 0 2px 8px rgba(0,0,0,.06); border-radius: 14px; }
+    .mini { font-size: .9rem; color: #6c757d; }
+    .legend-badge { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; }
+  </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="m-0">Suppliers Report</h2>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary"
+                href="{% url 'product:supplier_report_csv' %}?{{ querystring }}">
+                <i class="bi bi-download me-1"></i> CSV
+            </a>
+            <a class="btn btn-outline-dark" href="{% url 'product:inventory_view' %}">
+                <i class="bi bi-arrow-left-short me-1"></i> Back
+            </a>
+        </div>
+        
+  </div>
+  
+
+
+  <div class="row g-3 mb-3">
+    <div class="col-md-6">
+        
+      <div class="card p-3">
+        
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="mini">Total Inventory Value</div>
+            <div class="fs-4 fw-semibold">{{ total_value_sum|floatformat:2 }}</div>
+          </div>
+          <i class="bi bi-cash-coin fs-2 text-muted"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card p-3">
+        <div class="d-flex justify-content-between">
+          <div>
+            <div class="mini">Total Quantity</div>
+            <div class="fs-4 fw-semibold">{{ total_qty_sum }}</div>
+          </div>
+          <i class="bi bi-box-seam fs-2 text-muted"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h5 class="mb-3">% of Inventory Value by Supplier</h5>
+        <canvas id="valueDoughnut"></canvas>
+        <div id="legendValue" class="mt-3"></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h5 class="mb-3">Quantity by Supplier</h5>
+        <canvas id="qtyBar"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="card p-3 mt-3">
+  <div class="d-flex align-items-center justify-content-between">
+    <h5 class="mb-0">Supplier Breakdown</h5>
+    <small class="text-muted">Sorted by inventory value</small>
+  </div>
+  <div class="table-responsive mt-3">
+    <table class="table table-sm align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Supplier</th>
+          <th class="text-end">Products</th>
+          <th class="text-end">Qty</th>
+          <th class="text-end">Value</th>
+          <th class="text-end">% Value</th>
+          <th class="text-end">% Qty</th>
+          <th class="text-end">Low</th>
+          <th class="text-end">Out</th>
+          <th class="text-end">Avg Unit Cost</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in suppliers_table %}
+        <tr>
+          <td>{{ r.name }}</td>
+          <td class="text-end">{{ r.product_count }}</td>
+          <td class="text-end">{{ r.total_qty }}</td>
+          <td class="text-end">{{ r.total_value|floatformat:2 }}</td>
+          <td class="text-end">{{ r.percent_value }}%</td>
+          <td class="text-end">{{ r.percent_qty }}%</td>
+          <td class="text-end">{{ r.low_stock }}</td>
+          <td class="text-end">{{ r.out_stock }}</td>
+          <td class="text-end">{{ r.avg_unit_cost|floatformat:2 }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" class="text-muted">No suppliers match the current filters.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+  
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
+<script>
+  const labels = {{ labels_json|safe }};
+  const valuesValue = {{ values_value_json|safe }};
+  const valuesQty = {{ values_qty_json|safe }};
+  const percentsValue = {{ percents_value_json|safe }};
+
+  // Generate a palette (no fixed colors requested; Chart.js will auto-color, but we also provide a palette)
+  const palette = labels.map((_, i) => `hsl(${(i*53)%360} 70% 55%)`);
+
+  // Doughnut: % of total inventory value
+  const valueDoughnut = new Chart(
+    document.getElementById('valueDoughnut'),
+    {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data: valuesValue,
+          backgroundColor: palette,
+        }]
+      },
+      options: {
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const idx = ctx.dataIndex;
+                const val = valuesValue[idx] ?? 0;
+                const pct = percentsValue[idx] ?? 0;
+                return `${labels[idx]}: ${val.toFixed(2)} (${pct}%)`;
+              }
+            }
+          },
+          legend: { display: false }
+        },
+        cutout: '60%'
+      }
+    }
+  );
+
+  // Simple legend
+  const legend = document.getElementById('legendValue');
+  legend.innerHTML = labels.map((l, i) =>
+    `<div class="d-flex align-items-center mb-1">
+       <span class="legend-badge" style="background:${palette[i]}"></span>
+       <span class="me-2">${l}</span>
+       <span class="mini">(${(percentsValue[i]||0)}%)</span>
+     </div>`
+  ).join("");
+
+  // Bar: quantities per supplier
+  const qtyBar = new Chart(
+    document.getElementById('qtyBar'),
+    {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Qty',
+          data: valuesQty,
+          backgroundColor: palette
+        }]
+      },
+      options: {
+        scales: {
+          y: { beginAtZero: true, ticks: { precision: 0 } }
+        }
+      }
+    }
+  );
+</script>
+
+
+</body>
+</html>

@@ -30,7 +30,7 @@ def login_view(request):
             login(request, user)
             messages.success(request, "Logged in successfully", "alert-success")
             return redirect('main:dashboard_view')
-        messages.error(request, "Please try again. Your credentials are wrong", "alert-danger")
+        messages.error(request, "Username or password is wrong", "alert-danger")
     return render(request, "login.html")
 
 

@@ -1,3 +1,4 @@
+import json
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from .models import Product, Supplier, Category
@@ -181,6 +182,9 @@ def delete_product_view(request: HttpRequest, product_id):
     
     product = get_object_or_404(Product, id=product_id)
     product.delete()
+    messages.success(request, "Product deleted successfully.", "alert-success")
+
+
     return redirect('product:inventory_view')
 
 @login_required
@@ -263,6 +267,7 @@ def add_category_view(request: HttpRequest):
 
 @login_required
 def suppliers_view(request:HttpRequest):
+
     suppliers = Supplier.objects.all()
     q = (request.GET.get('q') or '').strip()
 
@@ -595,9 +600,89 @@ def inventory_report_csv(request):
     return resp
 
 @login_required
-def supplier_report_csv(request):
-    # Optional filters (same style)
+def supplier_report_view(request):
+    # Filter the same way you already do
     qs = Product.objects.all()
+
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(sku__icontains=q))
+
+    category_id = request.GET.get("category")
+    if category_id:
+        qs = qs.filter(category_id=category_id)
+
+    status = request.GET.get("status")
+    if status:
+        qs = qs.filter(stock_status=status)
+
+    suppliers_qs = (
+        Supplier.objects.annotate(
+            product_count=Count("products", filter=Q(products__in=qs), distinct=True),
+            total_qty=Sum("products__quantity", filter=Q(products__in=qs)),
+            total_value=Sum(
+                F("products__quantity") * F("products__cost_price"),
+                filter=Q(products__in=qs),
+                output_field=DecimalField()
+            ),
+            low_stock=Count(
+                Case(When(products__stock_status="almost_done", then=1), output_field=IntegerField()),
+                filter=Q(products__in=qs),
+            ),
+            out_stock=Count(
+                Case(When(products__stock_status="out_of_stock", then=1), output_field=IntegerField()),
+                filter=Q(products__in=qs),
+            ),
+        )
+        .filter(product_count__gt=0)
+        .order_by("-total_value", "name")
+    )
+
+    labels = [s.name for s in suppliers_qs]
+    values_value = [float(s.total_value or 0) for s in suppliers_qs]
+    values_qty = [int(s.total_qty or 0) for s in suppliers_qs]
+
+    total_value_sum = float(sum(values_value)) or 1.0
+    total_qty_sum = int(sum(values_qty)) or 1
+
+    percents_value = [round((v / total_value_sum) * 100, 2) for v in values_value]
+    percents_qty = [round((q / total_qty_sum) * 100, 2) for q in values_qty]
+
+    # Build a detailed table (list of dicts) for the template
+    suppliers_table = []
+    for idx, s in enumerate(suppliers_qs):
+        tv = float(s.total_value or 0)
+        tq = int(s.total_qty or 0)
+        avg_unit_cost = round(tv / tq, 2) if tq else 0.0
+        suppliers_table.append({
+            "name": s.name,
+            "product_count": s.product_count or 0,
+            "total_qty": tq,
+            "total_value": round(tv, 2),
+            "percent_value": percents_value[idx],
+            "percent_qty": percents_qty[idx],
+            "low_stock": s.low_stock or 0,
+            "out_stock": s.out_stock or 0,
+            "avg_unit_cost": avg_unit_cost,
+        })
+
+    context = {
+        "labels_json": json.dumps(labels),
+        "values_value_json": json.dumps(values_value),
+        "values_qty_json": json.dumps(values_qty),
+        "percents_value_json": json.dumps(percents_value),
+        "percents_qty_json": json.dumps(percents_qty),
+        "total_value_sum": total_value_sum,
+        "total_qty_sum": total_qty_sum,
+        "suppliers_table": suppliers_table,                 # <-- new
+        "querystring": request.GET.urlencode(),
+    }
+    return render(request, "products/suppliers_charts.html", context)
+
+@login_required
+def supplier_report_csv(request):
+    qs = Product.objects.all()
+
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(sku__icontains=q))
@@ -608,13 +693,15 @@ def supplier_report_csv(request):
     if status:
         qs = qs.filter(stock_status=status)
 
-    supplier_rows = (
+    suppliers_qs = (
         Supplier.objects.annotate(
             product_count=Count("products", filter=Q(products__in=qs), distinct=True),
             total_qty=Sum("products__quantity", filter=Q(products__in=qs)),
-            total_value=Sum(F("products__quantity") * F("products__cost_price"),
-                            filter=Q(products__in=qs),
-                            output_field=DecimalField()),
+            total_value=Sum(
+                F("products__quantity") * F("products__cost_price"),
+                filter=Q(products__in=qs),
+                output_field=DecimalField()
+            ),
             low_stock=Count(
                 Case(When(products__stock_status="almost_done", then=1), output_field=IntegerField()),
                 filter=Q(products__in=qs),
@@ -624,49 +711,45 @@ def supplier_report_csv(request):
                 filter=Q(products__in=qs),
             ),
         )
-        .order_by("name")
+        .filter(product_count__gt=0)
+        .order_by("-total_value", "name")
     )
+
+    # Totals for percentage calculation
+    totals = suppliers_qs.aggregate(
+        sum_value=Sum("total_value"),
+        sum_qty=Sum("total_qty"),
+    )
+    sum_value = float(totals["sum_value"] or 0.0)
+    sum_qty = int(totals["sum_qty"] or 0)
 
     resp = HttpResponse(content_type="text/csv; charset=utf-8")
     resp["Content-Disposition"] = f'attachment; filename="{_ts_filename("supplier-report")}"'
     resp.write("\ufeff")
     w = csv.writer(resp)
 
-    # Summary header
     w.writerow(["Supplier Report"])
     w.writerow(["Generated At", timezone.now().strftime("%Y-%m-%d %H:%M")])
     w.writerow([])
+    w.writerow(["Supplier","Products","Total Qty","Total Value","% of Value","% of Qty","Low Stock","Out of Stock","Avg Unit Cost"])
 
-    # Table
-    w.writerow(["Supplier","Products Linked","Total Qty","Total Value","Almost Done","Out of Stock"])
-    for s in supplier_rows:
+    for s in suppliers_qs:
+        tv = float(s.total_value or 0.0)
+        tq = int(s.total_qty or 0)
+        pct_val = round((tv / (sum_value or 1.0)) * 100, 2) if sum_value else 0.0
+        pct_qty = round((tq / (sum_qty or 1)) * 100, 2) if sum_qty else 0.0
+        avg_unit_cost = round(tv / tq, 2) if tq else 0.0
+
         w.writerow([
             s.name,
             s.product_count or 0,
-            s.total_qty or 0,
-            s.total_value or 0,
+            tq,
+            round(tv, 2),
+            pct_val,
+            pct_qty,
             s.low_stock or 0,
             s.out_stock or 0,
+            avg_unit_cost,
         ])
-
-    # Optional: per-supplier product details
-    w.writerow([])
-    w.writerow(["Details by Supplier"])
-    w.writerow(["Supplier","Product Name","SKU","Category","Qty","Reorder","Status","Cost Price","Line Value"])
-    for s in Supplier.objects.all().order_by("name"):
-        prods = s.products.filter(id__in=qs.values_list("id", flat=True)).select_related("category")
-        for p in prods:
-            line_value = (p.quantity or 0) * (p.cost_price or Decimal("0"))
-            w.writerow([
-                s.name,
-                p.name,
-                p.sku,
-                p.category.name if p.category_id else "",
-                p.quantity,
-                p.reorder_level,
-                p.stock_status,
-                p.cost_price,
-                line_value,
-            ])
 
     return resp

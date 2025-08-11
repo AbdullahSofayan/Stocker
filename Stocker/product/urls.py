@@ -21,6 +21,7 @@ urlpatterns = [
     path("export/csv/", views.export_products_csv, name="export_products_csv"),
     path("import/csv/", views.import_products_csv, name="import_products_csv"),
     path("reports/inventory.csv", views.inventory_report_csv, name="inventory_report_csv"),
+    path("reports/suppliers/", views.supplier_report_view, name="supplier_report_view"),
     path("reports/suppliers.csv", views.supplier_report_csv, name="supplier_report_csv"),
 
 
