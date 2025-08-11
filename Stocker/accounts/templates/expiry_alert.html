@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: Arial, sans-serif; color:#333; }
+    h2 { margin:0 0 10px; color:#0f766e; }
+    small { color:#6b7280; }
+    table { border-collapse: collapse; width:100%; margin-top:12px; }
+    th, td { border:1px solid #e5e7eb; padding:8px; font-size:14px; }
+    th { background:#f8fafc; text-align:left; }
+  </style>
+</head>
+<body>
+  <h2>Products Expiring Soon</h2>
+  <small>Window: {{ today }} → {{ soon }}</small>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>SKU</th>
+        <th>Category</th>
+        <th>Qty</th>
+        <th>Expiry Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in products %}
+      <tr>
+        <td>{{ p.name }}</td>
+        <td>{{ p.sku }}</td>
+        <td>{{ p.category.name }}</td>
+        <td>{{ p.quantity }}</td>
+        <td>{{ p.expiry_date }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

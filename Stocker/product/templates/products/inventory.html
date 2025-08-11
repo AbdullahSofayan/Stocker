@@ -56,10 +56,7 @@
             <i class="bi bi-clipboard-data"></i> Inventory Report
         </a>
         </div>
-        <a class="btn btn-outline-dark d-flex align-items-center gap-1"
-   href="{% url 'product:supplier_report_view' %}?{{ request.GET.urlencode }}">
-  <i class="bi bi-graph-up"></i> Supplier Charts
-</a>
+
 
 
 
@@ -167,7 +164,7 @@
         <div class="modal fade" id="editModal{{ product.id }}" tabindex="-1" aria-labelledby="editModalLabel{{ product.id }}" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-            <form method="post" action="{% url 'product:edit_product_view' product.id %}" enctype="multipart/form-data">
+            <form method="post" action="{% url 'product:edit_product_view' product.id %}?page={{ request.GET.page }}" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-header">
                 <h5 class="modal-title" id="editModalLabel{{ product.id }}">Edit {{ product.name }}</h5>
@@ -262,7 +259,7 @@
         <div class="modal fade" id="deleteModal{{ product.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ product.id }}" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-            <form method="post" action="{% url 'product:delete_product_view' product.id %}">
+            <form method="post" action="{% url 'product:delete_product_view' product.id %}?page={{ request.GET.page }}">
                 {% csrf_token %}
                 <div class="modal-header">
                 <h5 class="modal-title" id="deleteModalLabel{{ product.id }}">Delete {{ product.name }}</h5>

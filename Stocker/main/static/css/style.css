@@ -117,3 +117,60 @@ h6 {
     background: transparent;
     font-size: 16px;
 }
+
+/* ===== Base / desktop ===== */
+body { font-family: "Inter", system-ui, sans-serif; }
+.d-flex > .sidebar {
+  width: 260px;
+  min-height: 100vh;
+  flex: 0 0 260px;
+}
+.topbar img { width: 32px; height: 32px; object-fit: cover; }
+
+/* spacing and link look */
+.sidebar .nav .nav-link {
+  color: #445;
+  padding: .5rem .75rem;
+  border-radius: .5rem;
+}
+.sidebar .nav .nav-link.active,
+.sidebar .nav .nav-link:hover {
+  background: #f3f6ff;
+  color: #0d6efd;
+}
+
+@media (max-width: 992px) {
+  .d-flex > .sidebar { width: 220px; flex-basis: 220px; }
+  .topbar { padding-inline: 1rem; }
+  .topbar img { width: 28px; height: 28px; }
+}
+
+@media (max-width: 768px) {
+  .d-flex { flex-direction: column; }
+  .d-flex > .sidebar {
+    width: 100%;
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .sidebar .nav {
+    flex-direction: row !important;
+    gap: .5rem !important;
+    overflow-x: auto;
+    padding-bottom: .25rem;
+  }
+  .sidebar .nav .nav-link {
+    white-space: nowrap;
+    padding: .5rem .75rem;
+  }
+
+  .topbar { justify-content: space-between; }
+}
+
+@media (max-width: 480px) {
+  .sidebar h4 { font-size: 1.05rem; margin-bottom: .75rem; }
+  .topbar i { font-size: 16px !important; }
+  .topbar { padding-inline: .75rem; }
+  .flex-grow-1.p-4 { padding: 1rem !important; }
+}

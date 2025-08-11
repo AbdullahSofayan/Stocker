@@ -9,8 +9,10 @@ import csv, io
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.contrib.auth.decorators import login_required
-
-
+from django.core.mail import EmailMessage
+from django.conf import settings
+from django.template.loader import render_to_string
+from django.contrib.auth.models import User
 # Create your views here.
 
 @login_required
@@ -45,7 +47,7 @@ def inventory_view(request: HttpRequest):
     if status:
         products = products.filter(stock_status=status)
 
-    # --- pagination ---
+   
     paginator = Paginator(products, 12) 
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
@@ -111,12 +113,14 @@ def add_product_view(request: HttpRequest):
 
 
     return render(request, 'products/add_product.html', {'today_date': today, 'suppliers': suppliers, 'categories': categories})
+from django.urls import reverse
 
 
 @login_required
 def edit_product_view(request, product_id):
     product = get_object_or_404(Product, id=product_id)
-    
+    page = request.GET.get("page", 1) 
+
     if request.method == "POST":
 
         sku = request.POST.get('sku')
@@ -138,8 +142,7 @@ def edit_product_view(request, product_id):
         else:
             product.expiry_date = None
 
-        print(type(product.quantity))
-        print(type(product.reorder_level))
+
 
         if product.quantity == '0':
             product.stock_status = "out_of_stock"
@@ -170,8 +173,11 @@ def edit_product_view(request, product_id):
         supplier_ids = request.POST.getlist("supplier")
         product.supplier.set(supplier_ids)
 
-        
-        return redirect("product:inventory_view")  
+        # Send alert if low stock
+        if product.stock_status in ["almost_done", "out_of_stock"]:
+            send_low_stock_alert(product)
+
+        return redirect(f"{reverse('product:inventory_view')}?page={page}") # Redirect to the same page.
 
 @login_required
 def delete_product_view(request: HttpRequest, product_id):
@@ -181,11 +187,13 @@ def delete_product_view(request: HttpRequest, product_id):
         return redirect('product:inventory_view')
     
     product = get_object_or_404(Product, id=product_id)
+    page = request.GET.get("page", 1) 
+
     product.delete()
     messages.success(request, "Product deleted successfully.", "alert-success")
 
 
-    return redirect('product:inventory_view')
+    return redirect(f"{reverse('product:inventory_view')}?page={page}") # Redirect to the same page.
 
 @login_required
 def details_product_view(request: HttpRequest, product_id):
@@ -196,7 +204,18 @@ def details_product_view(request: HttpRequest, product_id):
 @login_required
 def categories_view(request: HttpRequest):
     categories = Category.objects.all()
-    return render(request, 'categories/categories_page.html', {'categories': categories})
+
+    paginator = Paginator(categories, 12) 
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    # keep all current query params except 'page'
+    params = request.GET.copy()
+    params.pop('page', None)
+    base_qs = params.urlencode()
+
+
+    return render(request, 'categories/categories_page.html', {'base_qs': base_qs,'categories': page_obj, 'page_obj': page_obj})
 
 
 @login_required
@@ -273,8 +292,17 @@ def suppliers_view(request:HttpRequest):
 
     if q:
         suppliers = suppliers.filter(Q(name__icontains=q))
+
+    paginator = Paginator(suppliers, 12) 
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    # keep all current query params except 'page'
+    params = request.GET.copy()
+    params.pop('page', None)
+    base_qs = params.urlencode()
         
-    return render(request, "suppliers/suppliers_page.html", {'suppliers':suppliers})
+    return render(request, "suppliers/suppliers_page.html", {'base_qs': base_qs, 'suppliers':page_obj, 'page_obj':page_obj})
 
 
 
@@ -425,6 +453,7 @@ def export_products_csv(request):
 
     return response
 
+
 @login_required
 def import_products_csv(request):
     if request.method == "POST" and request.FILES.get("csv_file"):
@@ -480,7 +509,7 @@ def import_products_csv(request):
 
             imported_count += 1
 
-        messages.success(request, f"Imported {imported_count} products successfully!")
+        messages.success(request, f"Imported {imported_count} products successfully!", "alert-success")
         return redirect("product:inventory_view")
 
     messages.error(request, "No file uploaded.")
@@ -677,7 +706,7 @@ def supplier_report_view(request):
         "suppliers_table": suppliers_table,                 # <-- new
         "querystring": request.GET.urlencode(),
     }
-    return render(request, "products/suppliers_charts.html", context)
+    return render(request, "suppliers/suppliers_charts.html", context)
 
 @login_required
 def supplier_report_csv(request):
@@ -753,3 +782,25 @@ def supplier_report_csv(request):
         ])
 
     return resp
+
+
+
+
+def send_low_stock_alert(product):
+    admin_emails = list(User.objects.filter(is_superuser=True).values_list('email', flat=True))
+
+    subject = f"Low Stock Alert - {product.name}"
+    html_message = render_to_string("low_stock_alert.html", {"products": [product]})
+
+    # Send to admin email (set in .env)
+    email = EmailMessage(
+        subject=subject,
+        body=html_message,
+        from_email=settings.EMAIL_HOST_USER,
+        to=admin_emails
+    )
+    email.content_subtype = "html"
+    email.send(fail_silently=False)
+
+
+

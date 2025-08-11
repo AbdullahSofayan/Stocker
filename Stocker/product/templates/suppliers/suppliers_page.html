@@ -62,7 +62,7 @@
                     <img src="{{ supplier.image.url }}" 
                         alt="{{ supplier.name }}" 
                         class="rounded-circle border shadow-sm"
-                        style="width: 120px; height: 120px; object-fit: cover;">
+                        style="width: 120px; height: 120px; object-fit: contain;">
                     {% else %}
                     <div class="rounded-circle border shadow-sm d-flex align-items-center justify-content-center bg-light"
                         style="width: 120px; height: 120px;">
@@ -193,7 +193,7 @@
 <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <form method="post" action="{% url 'product:add_supplier_view' %}">
+      <form method="post" action="{% url 'product:add_supplier_view' %}" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="modal-header">
           <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Supplier</h5>
@@ -232,7 +232,99 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         </div>
       </form>
+
+
+
+      
     </div>
+    
   </div>
+  
+
+  
 </div>
+
+<nav class="mt-4 d-flex justify-content-center">
+  <ul class="pagination pagination-sm pagination-rounded shadow-sm">
+    
+    <!-- Previous -->
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.previous_page_number }}">
+          &laquo; Prev
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">&laquo; Prev</span>
+      </li>
+    {% endif %}
+
+    <!-- First page + leading dots -->
+    {% if page_obj.number > 3 %}
+      <li class="page-item"><a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page=1">1</a></li>
+      {% if page_obj.number > 4 %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endif %}
+
+    <!-- Page numbers -->
+    {% for num in page_obj.paginator.page_range %}
+      {% if num >= page_obj.number|add:'-2' and num <= page_obj.number|add:'2' %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+          <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ num }}">{{ num }}</a>
+        </li>
+      {% endif %}
+    {% endfor %}
+
+    <!-- Trailing dots + last page -->
+    {% if page_obj.number < page_obj.paginator.num_pages|add:'-2' %}
+      {% if page_obj.number < page_obj.paginator.num_pages|add:'-3' %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+          {{ page_obj.paginator.num_pages }}
+        </a>
+      </li>
+    {% endif %}
+
+    <!-- Next -->
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?{% if base_qs %}{{ base_qs }}&{% endif %}page={{ page_obj.next_page_number }}">
+          Next &raquo;
+        </a>
+      </li>
+    {% else %}
+      <li class="page-item disabled">
+        <span class="page-link">Next &raquo;</span>
+      </li>
+    {% endif %}
+
+  </ul>
+</nav>
+
+
+<style>
+    .pagination-rounded .page-link {
+    border-radius: 50px !important;
+    margin: 0 2px;
+    padding: 6px 12px;
+    transition: all 0.2s ease-in-out;
+}
+
+.pagination-rounded .page-link:hover {
+    background-color: #f0f0f0;
+    color: #000;
+}
+
+.pagination-rounded .page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+    font-weight: 600;
+}
+
+</style>
 {% endblock %}

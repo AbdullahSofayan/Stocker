@@ -41,9 +41,7 @@
                         <li class="nav-item">
                         <a href="{% url 'product:suppliers_view' %}" class="nav-link {% if request.path|slice:':22' == '/inventory/suppliers/' %}active{% endif %}"><i class="bi bi-truck me-2"></i>Suppliers</a>
                         </li>
-                        <li class="nav-item">
-                        <a href="#" class="nav-link"><i class="bi bi-gear me-2"></i>Manage Store</a>
-                        </li>
+
 
 
                     </ul>
@@ -55,10 +53,7 @@
             <!-- Top Navigation Bar -->
             <div class="topbar d-flex align-items-center justify-content-end px-4 border-bottom bg-white w-100">
                 <!-- Right Section -->
-                <div class="d-flex align-items-center gap-4">
-                    <i class="bi bi-bell" style="font-size: 18px; color: #6c7a89; cursor: pointer;"></i>
-                    <img src="{% static 'images/default.jpg' %}" class="rounded-circle" alt="Profile" style="width: 32px; height: 32px; object-fit: cover;">
-                    
+                <div class="d-flex align-items-center gap-4">                    
                     <!-- Logout icon -->
                     <a href="{% url 'accounts:logout_view' %}" title="Logout"
                     style="color: #6c7a89; font-size: 18px; display: flex; align-items: center;">
